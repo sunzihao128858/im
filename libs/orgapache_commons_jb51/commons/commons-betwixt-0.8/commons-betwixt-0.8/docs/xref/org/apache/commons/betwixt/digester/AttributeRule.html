@@ -1,0 +1,235 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1" /><title>AttributeRule xref</title>
+<link type="text/css" rel="stylesheet" href="../../../../../stylesheet.css" />
+</head>
+<body>
+<div id="overview"><a href="../../../../../../apidocs/org/apache/commons/betwixt/digester/AttributeRule.html">View Javadoc</a></div><pre>
+
+<a name="1" href="#1">1</a>   <strong>package</strong> <a href="../../../../../org/apache/commons/betwixt/digester/package-summary.html">org.apache.commons.betwixt.digester</a>;
+<a name="2" href="#2">2</a>   
+<a name="3" href="#3">3</a>   <em class="comment">/*</em>
+<a name="4" href="#4">4</a>   <em class="comment"> * Licensed to the Apache Software Foundation (ASF) under one or more</em>
+<a name="5" href="#5">5</a>   <em class="comment"> * contributor license agreements.  See the NOTICE file distributed with</em>
+<a name="6" href="#6">6</a>   <em class="comment"> * this work for additional information regarding copyright ownership.</em>
+<a name="7" href="#7">7</a>   <em class="comment"> * The ASF licenses this file to You under the Apache License, Version 2.0</em>
+<a name="8" href="#8">8</a>   <em class="comment"> * (the "License"); you may not use this file except in compliance with</em>
+<a name="9" href="#9">9</a>   <em class="comment"> * the License.  You may obtain a copy of the License at</em>
+<a name="10" href="#10">10</a>  <em class="comment"> * </em>
+<a name="11" href="#11">11</a>  <em class="comment"> *      <a href="http://www.apache.org/licenses/LICENSE-2.0" target="alexandria_uri">http://www.apache.org/licenses/LICENSE-2.0</a></em>
+<a name="12" href="#12">12</a>  <em class="comment"> * </em>
+<a name="13" href="#13">13</a>  <em class="comment"> * Unless required by applicable law or agreed to in writing, software</em>
+<a name="14" href="#14">14</a>  <em class="comment"> * distributed under the License is distributed on an "AS IS" BASIS,</em>
+<a name="15" href="#15">15</a>  <em class="comment"> * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</em>
+<a name="16" href="#16">16</a>  <em class="comment"> * See the License for the specific language governing permissions and</em>
+<a name="17" href="#17">17</a>  <em class="comment"> * limitations under the License.</em>
+<a name="18" href="#18">18</a>  <em class="comment"> */</em> 
+<a name="19" href="#19">19</a>  <strong>import</strong> java.beans.BeanInfo;
+<a name="20" href="#20">20</a>  <strong>import</strong> java.beans.Introspector;
+<a name="21" href="#21">21</a>  <strong>import</strong> java.beans.PropertyDescriptor;
+<a name="22" href="#22">22</a>  <strong>import</strong> java.lang.reflect.Method;
+<a name="23" href="#23">23</a>  
+<a name="24" href="#24">24</a>  <strong>import</strong> org.apache.commons.betwixt.AttributeDescriptor;
+<a name="25" href="#25">25</a>  <strong>import</strong> org.apache.commons.betwixt.ElementDescriptor;
+<a name="26" href="#26">26</a>  <strong>import</strong> org.apache.commons.betwixt.XMLUtils;
+<a name="27" href="#27">27</a>  <strong>import</strong> org.apache.commons.betwixt.expression.ConstantExpression;
+<a name="28" href="#28">28</a>  <strong>import</strong> org.apache.commons.betwixt.expression.MethodExpression;
+<a name="29" href="#29">29</a>  <strong>import</strong> org.apache.commons.betwixt.expression.MethodUpdater;
+<a name="30" href="#30">30</a>  <strong>import</strong> org.apache.commons.logging.Log;
+<a name="31" href="#31">31</a>  <strong>import</strong> org.apache.commons.logging.LogFactory;
+<a name="32" href="#32">32</a>  <strong>import</strong> org.xml.sax.Attributes;
+<a name="33" href="#33">33</a>  <strong>import</strong> org.xml.sax.SAXException;
+<a name="34" href="#34">34</a>  
+<a name="35" href="#35">35</a>  <em>/**<em>* </em></em>
+<a name="36" href="#36">36</a>  <em>  * &lt;p>&lt;code>AttributeRule&lt;/code> the digester Rule for parsing the </em>
+<a name="37" href="#37">37</a>  <em>  * &amp;lt;attribute&amp;gt; elements.&lt;/p></em>
+<a name="38" href="#38">38</a>  <em>  *</em>
+<a name="39" href="#39">39</a>  <em>  * @author &lt;a href="<a href="mailto:jstrachan@apache.org" target="alexandria_uri">mailto:jstrachan@apache.org</a>">James Strachan&lt;/a></em>
+<a name="40" href="#40">40</a>  <em>  * @version $Id: AttributeRule.java 438373 2006-08-30 05:17:21Z bayard $</em>
+<a name="41" href="#41">41</a>  <em>  */</em>
+<a name="42" href="#42">42</a>  <strong>public</strong> <strong>class</strong> <a href="../../../../../org/apache/commons/betwixt/digester/AttributeRule.html">AttributeRule</a> <strong>extends</strong> <a href="../../../../../org/apache/commons/betwixt/digester/RuleSupport.html">RuleSupport</a> {
+<a name="43" href="#43">43</a>  
+<a name="44" href="#44">44</a>      <em>/**<em>* Logger */</em></em>
+<a name="45" href="#45">45</a>      <strong>private</strong> <strong>static</strong> <strong>final</strong> Log log = LogFactory.getLog( AttributeRule.<strong>class</strong> );
+<a name="46" href="#46">46</a>      <em>/**<em>* This loads all classes created by name. Defaults to this class's classloader */</em></em>
+<a name="47" href="#47">47</a>      <strong>private</strong> ClassLoader classLoader;
+<a name="48" href="#48">48</a>      <em>/**<em>* The &lt;code>Class&lt;/code> whose .betwixt file is being digested */</em></em>
+<a name="49" href="#49">49</a>      <strong>private</strong> Class beanClass;
+<a name="50" href="#50">50</a>      
+<a name="51" href="#51">51</a>      <em>/**<em>* Base constructor */</em></em>
+<a name="52" href="#52">52</a>      <strong>public</strong> <a href="../../../../../org/apache/commons/betwixt/digester/AttributeRule.html">AttributeRule</a>() {
+<a name="53" href="#53">53</a>          <strong>this</strong>.classLoader = getClass().getClassLoader();
+<a name="54" href="#54">54</a>      }
+<a name="55" href="#55">55</a>      
+<a name="56" href="#56">56</a>      <em class="comment">// Rule interface</em>
+<a name="57" href="#57">57</a>      <em class="comment">//-------------------------------------------------------------------------    </em>
+<a name="58" href="#58">58</a>      
+<a name="59" href="#59">59</a>      <em>/**<em>*</em></em>
+<a name="60" href="#60">60</a>  <em>     * Process the beginning of this element.</em>
+<a name="61" href="#61">61</a>  <em>     *</em>
+<a name="62" href="#62">62</a>  <em>     * @param attributes The attribute list of this element</em>
+<a name="63" href="#63">63</a>  <em>     * @throws SAXException 1. If the attribute tag is not inside an element tag.</em>
+<a name="64" href="#64">64</a>  <em>     * 2. If the name attribute is not valid XML attribute name.</em>
+<a name="65" href="#65">65</a>  <em>     */</em>
+<a name="66" href="#66">66</a>      <strong>public</strong> <strong>void</strong> begin(String name, String namespace, Attributes attributes) throws SAXException {
+<a name="67" href="#67">67</a>          
+<a name="68" href="#68">68</a>          <a href="../../../../../org/apache/commons/betwixt/AttributeDescriptor.html">AttributeDescriptor</a> descriptor = <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/AttributeDescriptor.html">AttributeDescriptor</a>();
+<a name="69" href="#69">69</a>          String nameAttributeValue = attributes.getValue( <span class="string">"name"</span> );
+<a name="70" href="#70">70</a>  
+<a name="71" href="#71">71</a>          <em class="comment">// check that name is well formed </em>
+<a name="72" href="#72">72</a>          <strong>if</strong> ( !XMLUtils.isWellFormedXMLName( nameAttributeValue ) ) {
+<a name="73" href="#73">73</a>              <strong>throw</strong> <strong>new</strong> SAXException(<span class="string">"'"</span> + nameAttributeValue + <span class="string">"' would not be a well formed xml attribute name."</span>);
+<a name="74" href="#74">74</a>          }
+<a name="75" href="#75">75</a>          
+<a name="76" href="#76">76</a>          String qName = nameAttributeValue;
+<a name="77" href="#77">77</a>          descriptor.setLocalName( nameAttributeValue );
+<a name="78" href="#78">78</a>          String uri = attributes.getValue( <span class="string">"uri"</span> );
+<a name="79" href="#79">79</a>          <strong>if</strong> ( uri != <strong>null</strong> ) {
+<a name="80" href="#80">80</a>              descriptor.setURI( uri );  
+<a name="81" href="#81">81</a>              String prefix = getXMLIntrospector().getConfiguration().getPrefixMapper().getPrefix(uri);
+<a name="82" href="#82">82</a>              qName = prefix + <span class="string">":"</span> + nameAttributeValue; 
+<a name="83" href="#83">83</a>          }
+<a name="84" href="#84">84</a>          descriptor.setQualifiedName( qName );
+<a name="85" href="#85">85</a>          
+<a name="86" href="#86">86</a>          String propertyName = attributes.getValue( <span class="string">"property"</span> );
+<a name="87" href="#87">87</a>          descriptor.setPropertyName( propertyName );
+<a name="88" href="#88">88</a>          descriptor.setPropertyType( loadClass( attributes.getValue( <span class="string">"type"</span> ) ) );
+<a name="89" href="#89">89</a>          
+<a name="90" href="#90">90</a>          <strong>if</strong> ( propertyName != <strong>null</strong> &amp;&amp; propertyName.length() > 0 ) {
+<a name="91" href="#91">91</a>              configureDescriptor(descriptor);
+<a name="92" href="#92">92</a>          } <strong>else</strong> {
+<a name="93" href="#93">93</a>              String value = attributes.getValue( <span class="string">"value"</span> );
+<a name="94" href="#94">94</a>              <strong>if</strong> ( value != <strong>null</strong> ) {
+<a name="95" href="#95">95</a>                  descriptor.setTextExpression( <strong>new</strong> ConstantExpression( value ) );
+<a name="96" href="#96">96</a>              }
+<a name="97" href="#97">97</a>          }
+<a name="98" href="#98">98</a>  
+<a name="99" href="#99">99</a>          Object top = digester.peek();
+<a name="100" href="#100">100</a>         <strong>if</strong> ( top instanceof ElementDescriptor ) {
+<a name="101" href="#101">101</a>             <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> parent = (ElementDescriptor) top;
+<a name="102" href="#102">102</a>             parent.addAttributeDescriptor( descriptor );
+<a name="103" href="#103">103</a>         } <strong>else</strong> {
+<a name="104" href="#104">104</a>             <strong>throw</strong> <strong>new</strong> SAXException( <span class="string">"Invalid use of &lt;attribute>. It should "</span> 
+<a name="105" href="#105">105</a>                 + <span class="string">"be nested inside an &lt;element> element"</span> );
+<a name="106" href="#106">106</a>         }            
+<a name="107" href="#107">107</a> 
+<a name="108" href="#108">108</a>         digester.push(descriptor);        
+<a name="109" href="#109">109</a>     }
+<a name="110" href="#110">110</a> 
+<a name="111" href="#111">111</a> 
+<a name="112" href="#112">112</a>     <em>/**<em>*</em></em>
+<a name="113" href="#113">113</a> <em>     * Process the end of this element.</em>
+<a name="114" href="#114">114</a> <em>     */</em>
+<a name="115" href="#115">115</a>     <strong>public</strong> <strong>void</strong> end(String name, String namespace) {
+<a name="116" href="#116">116</a>         <a href="../../../../../org/apache/commons/betwixt/AttributeDescriptor.html">AttributeDescriptor</a> descriptor = (AttributeDescriptor)digester.pop();
+<a name="117" href="#117">117</a>         <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> parent = (ElementDescriptor)digester.peek();
+<a name="118" href="#118">118</a> 
+<a name="119" href="#119">119</a>         <em class="comment">// check for attribute suppression</em>
+<a name="120" href="#120">120</a>         <strong>if</strong>( getXMLIntrospector().getConfiguration().getAttributeSuppressionStrategy().suppress(descriptor)) {
+<a name="121" href="#121">121</a>             parent.removeAttributeDescriptor(descriptor);
+<a name="122" href="#122">122</a>         }
+<a name="123" href="#123">123</a>     }
+<a name="124" href="#124">124</a> 
+<a name="125" href="#125">125</a>     
+<a name="126" href="#126">126</a>     <em class="comment">// Implementation methods</em>
+<a name="127" href="#127">127</a>     <em class="comment">//-------------------------------------------------------------------------    </em>
+<a name="128" href="#128">128</a>     <em>/**<em>*</em></em>
+<a name="129" href="#129">129</a> <em>     * Loads a class (using the appropriate classloader)</em>
+<a name="130" href="#130">130</a> <em>     *</em>
+<a name="131" href="#131">131</a> <em>     * @param name the name of the class to load</em>
+<a name="132" href="#132">132</a> <em>     * @return the class instance loaded by the appropriate classloader</em>
+<a name="133" href="#133">133</a> <em>     */</em>
+<a name="134" href="#134">134</a>     <strong>protected</strong> Class loadClass( String name ) {
+<a name="135" href="#135">135</a>         <em class="comment">// XXX: should use a ClassLoader to handle complex class loading situations</em>
+<a name="136" href="#136">136</a>         <strong>if</strong> ( name != <strong>null</strong> ) {
+<a name="137" href="#137">137</a>             <strong>try</strong> {
+<a name="138" href="#138">138</a>                 <strong>return</strong> classLoader.loadClass(name);
+<a name="139" href="#139">139</a>             } <strong>catch</strong> (Exception e) { <em class="comment">// SWALLOW</em>
+<a name="140" href="#140">140</a>             }
+<a name="141" href="#141">141</a>         }
+<a name="142" href="#142">142</a>         <strong>return</strong> <strong>null</strong>;            
+<a name="143" href="#143">143</a>     }
+<a name="144" href="#144">144</a>     
+<a name="145" href="#145">145</a>     <em>/**<em>* </em></em>
+<a name="146" href="#146">146</a> <em>     * Set the Expression and Updater from a bean property name </em>
+<a name="147" href="#147">147</a> <em>     * @param attributeDescriptor configure this &lt;code>AttributeDescriptor&lt;/code> </em>
+<a name="148" href="#148">148</a> <em>     * from the property with a matching name in the bean class</em>
+<a name="149" href="#149">149</a> <em>     */</em>
+<a name="150" href="#150">150</a>     <strong>protected</strong> <strong>void</strong> configureDescriptor(<a href="../../../../../org/apache/commons/betwixt/AttributeDescriptor.html">AttributeDescriptor</a> attributeDescriptor) {
+<a name="151" href="#151">151</a>         Class beanClass = getBeanClass();
+<a name="152" href="#152">152</a>         <strong>if</strong> ( beanClass != <strong>null</strong> ) {
+<a name="153" href="#153">153</a>             String name = attributeDescriptor.getPropertyName();
+<a name="154" href="#154">154</a>             <strong>try</strong> {
+<a name="155" href="#155">155</a>                 BeanInfo beanInfo;
+<a name="156" href="#156">156</a>                 <strong>if</strong>( getXMLIntrospector().getConfiguration().ignoreAllBeanInfo() ) {
+<a name="157" href="#157">157</a>                     beanInfo = Introspector.getBeanInfo( beanClass, Introspector.IGNORE_ALL_BEANINFO );
+<a name="158" href="#158">158</a>                 }
+<a name="159" href="#159">159</a>                 <strong>else</strong> {
+<a name="160" href="#160">160</a>                     beanInfo = Introspector.getBeanInfo( beanClass );
+<a name="161" href="#161">161</a>                 }
+<a name="162" href="#162">162</a>                 PropertyDescriptor[] descriptors = beanInfo.getPropertyDescriptors();
+<a name="163" href="#163">163</a>                 <strong>if</strong> ( descriptors != <strong>null</strong> ) {
+<a name="164" href="#164">164</a>                     <strong>for</strong> ( <strong>int</strong> i = 0, size = descriptors.length; i &lt; size; i++ ) {
+<a name="165" href="#165">165</a>                         PropertyDescriptor descriptor = descriptors[i];
+<a name="166" href="#166">166</a>                         <strong>if</strong> ( name.equals( descriptor.getName() ) ) {
+<a name="167" href="#167">167</a>                             configureProperty( attributeDescriptor, descriptor );
+<a name="168" href="#168">168</a>                             getProcessedPropertyNameSet().add( name );
+<a name="169" href="#169">169</a>                             <strong>break</strong>;
+<a name="170" href="#170">170</a>                         }
+<a name="171" href="#171">171</a>                     }
+<a name="172" href="#172">172</a>                 }
+<a name="173" href="#173">173</a>             } <strong>catch</strong> (Exception e) {
+<a name="174" href="#174">174</a>                 log.warn( <span class="string">"Caught introspection exception"</span>, e );
+<a name="175" href="#175">175</a>             }
+<a name="176" href="#176">176</a>         }
+<a name="177" href="#177">177</a>     }    
+<a name="178" href="#178">178</a>     
+<a name="179" href="#179">179</a>     <em>/**<em>*</em></em>
+<a name="180" href="#180">180</a> <em>     * Configure an &lt;code>AttributeDescriptor&lt;/code> from a &lt;code>PropertyDescriptor&lt;/code></em>
+<a name="181" href="#181">181</a> <em>     *</em>
+<a name="182" href="#182">182</a> <em>     * @param attributeDescriptor configure this &lt;code>AttributeDescriptor&lt;/code></em>
+<a name="183" href="#183">183</a> <em>     * @param propertyDescriptor configure from this &lt;code>PropertyDescriptor&lt;/code></em>
+<a name="184" href="#184">184</a> <em>     */</em>
+<a name="185" href="#185">185</a>     <strong>private</strong> <strong>void</strong> configureProperty( 
+<a name="186" href="#186">186</a>                                     <a href="../../../../../org/apache/commons/betwixt/AttributeDescriptor.html">AttributeDescriptor</a> attributeDescriptor, 
+<a name="187" href="#187">187</a>                                     PropertyDescriptor propertyDescriptor ) {
+<a name="188" href="#188">188</a>         Class type = propertyDescriptor.getPropertyType();
+<a name="189" href="#189">189</a>         Method readMethod = propertyDescriptor.getReadMethod();
+<a name="190" href="#190">190</a>         Method writeMethod = propertyDescriptor.getWriteMethod();
+<a name="191" href="#191">191</a>         
+<a name="192" href="#192">192</a>         <strong>if</strong> ( readMethod == <strong>null</strong> ) {
+<a name="193" href="#193">193</a>             log.trace( <span class="string">"No read method"</span> );
+<a name="194" href="#194">194</a>             <strong>return</strong>;
+<a name="195" href="#195">195</a>         }
+<a name="196" href="#196">196</a>         
+<a name="197" href="#197">197</a>         <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="198" href="#198">198</a>             log.trace( <span class="string">"Read method="</span> + readMethod );
+<a name="199" href="#199">199</a>         }
+<a name="200" href="#200">200</a>         
+<a name="201" href="#201">201</a>         <em class="comment">// choose response from property type</em>
+<a name="202" href="#202">202</a>         <strong>if</strong> ( getXMLIntrospector().isLoopType( type ) ) {
+<a name="203" href="#203">203</a>             log.warn( <span class="string">"Using loop type for an attribute. Type = "</span> 
+<a name="204" href="#204">204</a>                     + type.getName() + <span class="string">" attribute: "</span> + attributeDescriptor.getQualifiedName() );
+<a name="205" href="#205">205</a>         }
+<a name="206" href="#206">206</a> 
+<a name="207" href="#207">207</a>         log.trace( <span class="string">"Standard property"</span> );
+<a name="208" href="#208">208</a>         attributeDescriptor.setTextExpression( <strong>new</strong> MethodExpression( readMethod ) );
+<a name="209" href="#209">209</a>         
+<a name="210" href="#210">210</a>         <strong>if</strong> ( writeMethod != <strong>null</strong> ) {
+<a name="211" href="#211">211</a>             attributeDescriptor.setUpdater( <strong>new</strong> MethodUpdater( writeMethod ) );
+<a name="212" href="#212">212</a>         }
+<a name="213" href="#213">213</a>         
+<a name="214" href="#214">214</a>         attributeDescriptor.setPropertyName( propertyDescriptor.getName() );
+<a name="215" href="#215">215</a>         attributeDescriptor.setPropertyType( type );        
+<a name="216" href="#216">216</a>         
+<a name="217" href="#217">217</a>         <em class="comment">// XXX: associate more bean information with the descriptor?</em>
+<a name="218" href="#218">218</a>         <em class="comment">//nodeDescriptor.setDisplayName( propertyDescriptor.getDisplayName() );</em>
+<a name="219" href="#219">219</a>         <em class="comment">//nodeDescriptor.setShortDescription( propertyDescriptor.getShortDescription() );</em>
+<a name="220" href="#220">220</a>     }
+<a name="221" href="#221">221</a>     
+<a name="222" href="#222">222</a> }
+</pre>
+<hr/><div id="footer">This page was automatically generated by <a href="http://maven.apache.org/">Maven</a></div></body>
+</html>
+

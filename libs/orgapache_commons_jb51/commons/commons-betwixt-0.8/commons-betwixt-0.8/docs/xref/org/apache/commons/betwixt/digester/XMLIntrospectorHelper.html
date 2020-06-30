@@ -1,0 +1,708 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1" /><title>XMLIntrospectorHelper xref</title>
+<link type="text/css" rel="stylesheet" href="../../../../../stylesheet.css" />
+</head>
+<body>
+<div id="overview"><a href="../../../../../../apidocs/org/apache/commons/betwixt/digester/XMLIntrospectorHelper.html">View Javadoc</a></div><pre>
+
+<a name="1" href="#1">1</a>   <strong>package</strong> <a href="../../../../../org/apache/commons/betwixt/digester/package-summary.html">org.apache.commons.betwixt.digester</a>;
+<a name="2" href="#2">2</a>   
+<a name="3" href="#3">3</a>   <em class="comment">/*</em>
+<a name="4" href="#4">4</a>   <em class="comment"> * Licensed to the Apache Software Foundation (ASF) under one or more</em>
+<a name="5" href="#5">5</a>   <em class="comment"> * contributor license agreements.  See the NOTICE file distributed with</em>
+<a name="6" href="#6">6</a>   <em class="comment"> * this work for additional information regarding copyright ownership.</em>
+<a name="7" href="#7">7</a>   <em class="comment"> * The ASF licenses this file to You under the Apache License, Version 2.0</em>
+<a name="8" href="#8">8</a>   <em class="comment"> * (the "License"); you may not use this file except in compliance with</em>
+<a name="9" href="#9">9</a>   <em class="comment"> * the License.  You may obtain a copy of the License at</em>
+<a name="10" href="#10">10</a>  <em class="comment"> * </em>
+<a name="11" href="#11">11</a>  <em class="comment"> *      <a href="http://www.apache.org/licenses/LICENSE-2.0" target="alexandria_uri">http://www.apache.org/licenses/LICENSE-2.0</a></em>
+<a name="12" href="#12">12</a>  <em class="comment"> * </em>
+<a name="13" href="#13">13</a>  <em class="comment"> * Unless required by applicable law or agreed to in writing, software</em>
+<a name="14" href="#14">14</a>  <em class="comment"> * distributed under the License is distributed on an "AS IS" BASIS,</em>
+<a name="15" href="#15">15</a>  <em class="comment"> * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</em>
+<a name="16" href="#16">16</a>  <em class="comment"> * See the License for the specific language governing permissions and</em>
+<a name="17" href="#17">17</a>  <em class="comment"> * limitations under the License.</em>
+<a name="18" href="#18">18</a>  <em class="comment"> */</em> 
+<a name="19" href="#19">19</a>  
+<a name="20" href="#20">20</a>  <strong>import</strong> java.beans.IntrospectionException;
+<a name="21" href="#21">21</a>  <strong>import</strong> java.beans.Introspector;
+<a name="22" href="#22">22</a>  <strong>import</strong> java.beans.PropertyDescriptor;
+<a name="23" href="#23">23</a>  <strong>import</strong> java.lang.reflect.Method;
+<a name="24" href="#24">24</a>  <strong>import</strong> java.util.Collection;
+<a name="25" href="#25">25</a>  <strong>import</strong> java.util.Date;
+<a name="26" href="#26">26</a>  <strong>import</strong> java.util.Enumeration;
+<a name="27" href="#27">27</a>  <strong>import</strong> java.util.HashMap;
+<a name="28" href="#28">28</a>  <strong>import</strong> java.util.Iterator;
+<a name="29" href="#29">29</a>  <strong>import</strong> java.util.Map;
+<a name="30" href="#30">30</a>  
+<a name="31" href="#31">31</a>  <strong>import</strong> org.apache.commons.betwixt.AttributeDescriptor;
+<a name="32" href="#32">32</a>  <strong>import</strong> org.apache.commons.betwixt.ElementDescriptor;
+<a name="33" href="#33">33</a>  <strong>import</strong> org.apache.commons.betwixt.NodeDescriptor;
+<a name="34" href="#34">34</a>  <strong>import</strong> org.apache.commons.betwixt.XMLIntrospector;
+<a name="35" href="#35">35</a>  <strong>import</strong> org.apache.commons.betwixt.expression.IteratorExpression;
+<a name="36" href="#36">36</a>  <strong>import</strong> org.apache.commons.betwixt.expression.MapEntryAdder;
+<a name="37" href="#37">37</a>  <strong>import</strong> org.apache.commons.betwixt.expression.MethodExpression;
+<a name="38" href="#38">38</a>  <strong>import</strong> org.apache.commons.betwixt.expression.MethodUpdater;
+<a name="39" href="#39">39</a>  <strong>import</strong> org.apache.commons.betwixt.strategy.PluralStemmer;
+<a name="40" href="#40">40</a>  <strong>import</strong> org.apache.commons.logging.Log;
+<a name="41" href="#41">41</a>  <strong>import</strong> org.apache.commons.logging.LogFactory;
+<a name="42" href="#42">42</a>  
+<a name="43" href="#43">43</a>  <em>/**<em>* </em></em>
+<a name="44" href="#44">44</a>  <em>  * &lt;p>&lt;code>XMLIntrospectorHelper&lt;/code> a helper class for </em>
+<a name="45" href="#45">45</a>  <em>  * common code shared between the digestor and introspector.&lt;/p></em>
+<a name="46" href="#46">46</a>  <em>  * </em>
+<a name="47" href="#47">47</a>  <em>  * TODO this class will be deprecated soon</em>
+<a name="48" href="#48">48</a>  <em>  * need to move the isLoop and isPrimitiveType but probably need to</em>
+<a name="49" href="#49">49</a>  <em>  * think about whether they need replacing with something different.</em>
+<a name="50" href="#50">50</a>  <em>  * @author &lt;a href="<a href="mailto:jstrachan@apache.org" target="alexandria_uri">mailto:jstrachan@apache.org</a>">James Strachan&lt;/a></em>
+<a name="51" href="#51">51</a>  <em>  * @author &lt;a href="<a href="mailto:martin@mvdb.net" target="alexandria_uri">mailto:martin@mvdb.net</a>">Martin van den Bemt&lt;/a></em>
+<a name="52" href="#52">52</a>  <em>  *</em>
+<a name="53" href="#53">53</a>  <em>  * @deprecated</em>
+<a name="54" href="#54">54</a>  <em>  */</em>
+<a name="55" href="#55">55</a>  <strong>public</strong> <strong>class</strong> <a href="../../../../../org/apache/commons/betwixt/digester/XMLIntrospectorHelper.html">XMLIntrospectorHelper</a> {
+<a name="56" href="#56">56</a>  
+<a name="57" href="#57">57</a>      <em>/**<em>* Log used for logging (Doh!) */</em></em>
+<a name="58" href="#58">58</a>      <strong>protected</strong> <strong>static</strong> Log log = LogFactory.getLog( XMLIntrospectorHelper.<strong>class</strong> );
+<a name="59" href="#59">59</a>      
+<a name="60" href="#60">60</a>      <em>/**<em>* Base constructor */</em></em>
+<a name="61" href="#61">61</a>      <strong>public</strong> <a href="../../../../../org/apache/commons/betwixt/digester/XMLIntrospectorHelper.html">XMLIntrospectorHelper</a>() {
+<a name="62" href="#62">62</a>      }
+<a name="63" href="#63">63</a>      
+<a name="64" href="#64">64</a>      <em>/**<em>*</em></em>
+<a name="65" href="#65">65</a>  <em>     * &lt;p>Gets the current logging implementation.&lt;/p></em>
+<a name="66" href="#66">66</a>  <em>     *</em>
+<a name="67" href="#67">67</a>  <em>     * @return current log</em>
+<a name="68" href="#68">68</a>  <em>     */</em> 
+<a name="69" href="#69">69</a>      <strong>public</strong> <strong>static</strong> Log getLog() {
+<a name="70" href="#70">70</a>          <strong>return</strong> log;
+<a name="71" href="#71">71</a>      }
+<a name="72" href="#72">72</a>  
+<a name="73" href="#73">73</a>      <em>/**<em>*</em></em>
+<a name="74" href="#74">74</a>  <em>     * &lt;p>Sets the current logging implementation.&lt;/p></em>
+<a name="75" href="#75">75</a>  <em>     *</em>
+<a name="76" href="#76">76</a>  <em>     * @param aLog use this &lt;code>Log&lt;/code></em>
+<a name="77" href="#77">77</a>  <em>     */</em> 
+<a name="78" href="#78">78</a>      <strong>public</strong> <strong>static</strong> <strong>void</strong> setLog(Log aLog) {
+<a name="79" href="#79">79</a>          log = aLog;
+<a name="80" href="#80">80</a>      }
+<a name="81" href="#81">81</a>      
+<a name="82" href="#82">82</a>  
+<a name="83" href="#83">83</a>  
+<a name="84" href="#84">84</a>      <em>/**<em>* </em></em>
+<a name="85" href="#85">85</a>  <em>     * Process a property. </em>
+<a name="86" href="#86">86</a>  <em>     * Go through and work out whether it's a loop property, a primitive or a standard.</em>
+<a name="87" href="#87">87</a>  <em>     * The class property is ignored.</em>
+<a name="88" href="#88">88</a>  <em>     *</em>
+<a name="89" href="#89">89</a>  <em>     * @param propertyDescriptor create a &lt;code>NodeDescriptor&lt;/code> for this property</em>
+<a name="90" href="#90">90</a>  <em>     * @param useAttributesForPrimitives write primitives as attributes (rather than elements)</em>
+<a name="91" href="#91">91</a>  <em>     * @param introspector use this &lt;code>XMLIntrospector&lt;/code></em>
+<a name="92" href="#92">92</a>  <em>     * @return a correctly configured &lt;code>NodeDescriptor&lt;/code> for the property</em>
+<a name="93" href="#93">93</a>  <em>     * @throws IntrospectionException when bean introspection fails</em>
+<a name="94" href="#94">94</a>  <em>     * @deprecated 0.5 this method has been replaced by {@link XMLIntrospector#createDescriptor}</em>
+<a name="95" href="#95">95</a>  <em>     */</em>
+<a name="96" href="#96">96</a>      <strong>public</strong> <strong>static</strong> <a href="../../../../../org/apache/commons/betwixt/NodeDescriptor.html">NodeDescriptor</a> createDescriptor( 
+<a name="97" href="#97">97</a>          PropertyDescriptor propertyDescriptor, 
+<a name="98" href="#98">98</a>          <strong>boolean</strong> useAttributesForPrimitives,
+<a name="99" href="#99">99</a>          <a href="../../../../../org/apache/commons/betwixt/XMLIntrospector.html">XMLIntrospector</a> introspector
+<a name="100" href="#100">100</a>     ) throws IntrospectionException {
+<a name="101" href="#101">101</a>         String name = propertyDescriptor.getName();
+<a name="102" href="#102">102</a>         Class type = propertyDescriptor.getPropertyType();
+<a name="103" href="#103">103</a>        
+<a name="104" href="#104">104</a>         <strong>if</strong> (log.isTraceEnabled()) {
+<a name="105" href="#105">105</a>             log.trace(<span class="string">"Creating descriptor for property: name="</span>
+<a name="106" href="#106">106</a>                 + name + <span class="string">" type="</span> + type);
+<a name="107" href="#107">107</a>         }
+<a name="108" href="#108">108</a>         
+<a name="109" href="#109">109</a>         <a href="../../../../../org/apache/commons/betwixt/NodeDescriptor.html">NodeDescriptor</a> nodeDescriptor = <strong>null</strong>;
+<a name="110" href="#110">110</a>         Method readMethod = propertyDescriptor.getReadMethod();
+<a name="111" href="#111">111</a>         Method writeMethod = propertyDescriptor.getWriteMethod();
+<a name="112" href="#112">112</a>         
+<a name="113" href="#113">113</a>         <strong>if</strong> ( readMethod == <strong>null</strong> ) {
+<a name="114" href="#114">114</a>             <strong>if</strong> (log.isTraceEnabled()) {
+<a name="115" href="#115">115</a>                 log.trace( <span class="string">"No read method for property: name="</span>
+<a name="116" href="#116">116</a>                     + name + <span class="string">" type="</span> + type);
+<a name="117" href="#117">117</a>             }
+<a name="118" href="#118">118</a>             <strong>return</strong> <strong>null</strong>;
+<a name="119" href="#119">119</a>         }
+<a name="120" href="#120">120</a>         
+<a name="121" href="#121">121</a>         <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="122" href="#122">122</a>             log.trace( <span class="string">"Read method="</span> + readMethod.getName() );
+<a name="123" href="#123">123</a>         }
+<a name="124" href="#124">124</a>         
+<a name="125" href="#125">125</a>         <em class="comment">// choose response from property type</em>
+<a name="126" href="#126">126</a>         
+<a name="127" href="#127">127</a>         <em class="comment">// XXX: ignore class property ??</em>
+<a name="128" href="#128">128</a>         <strong>if</strong> ( Class.<strong>class</strong>.equals( type ) &amp;&amp; <span class="string">"class"</span>.equals( name ) ) {
+<a name="129" href="#129">129</a>             log.trace( <span class="string">"Ignoring class property"</span> );
+<a name="130" href="#130">130</a>             <strong>return</strong> <strong>null</strong>;
+<a name="131" href="#131">131</a>         }
+<a name="132" href="#132">132</a>         <strong>if</strong> ( isPrimitiveType( type ) ) {
+<a name="133" href="#133">133</a>             <strong>if</strong> (log.isTraceEnabled()) {
+<a name="134" href="#134">134</a>                 log.trace( <span class="string">"Primitive type: "</span> + name);
+<a name="135" href="#135">135</a>             }
+<a name="136" href="#136">136</a>             <strong>if</strong> ( useAttributesForPrimitives ) {
+<a name="137" href="#137">137</a>                 <strong>if</strong> (log.isTraceEnabled()) {
+<a name="138" href="#138">138</a>                     log.trace( <span class="string">"Adding property as attribute: "</span> + name );
+<a name="139" href="#139">139</a>                 }
+<a name="140" href="#140">140</a>                 nodeDescriptor = <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/AttributeDescriptor.html">AttributeDescriptor</a>();
+<a name="141" href="#141">141</a>             } <strong>else</strong> {
+<a name="142" href="#142">142</a>                 <strong>if</strong> (log.isTraceEnabled()) {
+<a name="143" href="#143">143</a>                     log.trace( <span class="string">"Adding property as element: "</span> + name );
+<a name="144" href="#144">144</a>                 }
+<a name="145" href="#145">145</a>                 nodeDescriptor = <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>(<strong>true</strong>);
+<a name="146" href="#146">146</a>             }
+<a name="147" href="#147">147</a>             nodeDescriptor.setTextExpression( <strong>new</strong> MethodExpression( readMethod ) );
+<a name="148" href="#148">148</a>             
+<a name="149" href="#149">149</a>             <strong>if</strong> ( writeMethod != <strong>null</strong> ) {
+<a name="150" href="#150">150</a>                 nodeDescriptor.setUpdater( <strong>new</strong> MethodUpdater( writeMethod ) );
+<a name="151" href="#151">151</a>             }
+<a name="152" href="#152">152</a>         } <strong>else</strong> <strong>if</strong> ( isLoopType( type ) ) {
+<a name="153" href="#153">153</a>             <strong>if</strong> (log.isTraceEnabled()) {
+<a name="154" href="#154">154</a>                 log.trace(<span class="string">"Loop type: "</span> + name);
+<a name="155" href="#155">155</a>                 log.trace(<span class="string">"Wrap in collections? "</span> + introspector.isWrapCollectionsInElement());
+<a name="156" href="#156">156</a>             }
+<a name="157" href="#157">157</a>             <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> loopDescriptor = <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>();
+<a name="158" href="#158">158</a>             loopDescriptor.setContextExpression(
+<a name="159" href="#159">159</a>                 <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/expression/IteratorExpression.html">IteratorExpression</a>( <strong>new</strong> MethodExpression( readMethod ) )
+<a name="160" href="#160">160</a>             );
+<a name="161" href="#161">161</a>             loopDescriptor.setWrapCollectionsInElement(
+<a name="162" href="#162">162</a>                         introspector.isWrapCollectionsInElement());
+<a name="163" href="#163">163</a>             <em class="comment">// XXX: need to support some kind of 'add' or handle arrays, Lists or indexed properties</em>
+<a name="164" href="#164">164</a>             <em class="comment">//loopDescriptor.setUpdater( new MethodUpdater( writeMethod ) );</em>
+<a name="165" href="#165">165</a>             <strong>if</strong> ( Map.<strong>class</strong>.isAssignableFrom( type ) ) {
+<a name="166" href="#166">166</a>                 loopDescriptor.setQualifiedName( <span class="string">"entry"</span> );
+<a name="167" href="#167">167</a>                 <em class="comment">// add elements for reading</em>
+<a name="168" href="#168">168</a>                 loopDescriptor.addElementDescriptor( <strong>new</strong> ElementDescriptor( <span class="string">"key"</span> ) );
+<a name="169" href="#169">169</a>                 loopDescriptor.addElementDescriptor( <strong>new</strong> ElementDescriptor( <span class="string">"value"</span> ) );
+<a name="170" href="#170">170</a>             }
+<a name="171" href="#171">171</a> 
+<a name="172" href="#172">172</a>             <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> elementDescriptor = <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>();
+<a name="173" href="#173">173</a>             elementDescriptor.setWrapCollectionsInElement(
+<a name="174" href="#174">174</a>                         introspector.isWrapCollectionsInElement());
+<a name="175" href="#175">175</a>             elementDescriptor.setElementDescriptors( <strong>new</strong> ElementDescriptor[] { loopDescriptor } );
+<a name="176" href="#176">176</a>             
+<a name="177" href="#177">177</a>             nodeDescriptor = elementDescriptor;            
+<a name="178" href="#178">178</a>         } <strong>else</strong> {
+<a name="179" href="#179">179</a>             <strong>if</strong> (log.isTraceEnabled()) {
+<a name="180" href="#180">180</a>                 log.trace( <span class="string">"Standard property: "</span> + name);
+<a name="181" href="#181">181</a>             }
+<a name="182" href="#182">182</a>             <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> elementDescriptor = <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>();
+<a name="183" href="#183">183</a>             elementDescriptor.setContextExpression( <strong>new</strong> MethodExpression( readMethod ) );
+<a name="184" href="#184">184</a>             <strong>if</strong> ( writeMethod != <strong>null</strong> ) {
+<a name="185" href="#185">185</a>                 elementDescriptor.setUpdater( <strong>new</strong> MethodUpdater( writeMethod ) );
+<a name="186" href="#186">186</a>             }
+<a name="187" href="#187">187</a>             
+<a name="188" href="#188">188</a>             nodeDescriptor = elementDescriptor;          
+<a name="189" href="#189">189</a>         }
+<a name="190" href="#190">190</a> 
+<a name="191" href="#191">191</a>         <strong>if</strong> (nodeDescriptor instanceof AttributeDescriptor) {
+<a name="192" href="#192">192</a>             <em class="comment">// we want to use the attributemapper only when it is an attribute.. </em>
+<a name="193" href="#193">193</a>             nodeDescriptor.setLocalName( 
+<a name="194" href="#194">194</a>                 introspector.getAttributeNameMapper().mapTypeToElementName( name ) );
+<a name="195" href="#195">195</a>         } <strong>else</strong> {
+<a name="196" href="#196">196</a>             nodeDescriptor.setLocalName( 
+<a name="197" href="#197">197</a>                 introspector.getElementNameMapper().mapTypeToElementName( name ) );
+<a name="198" href="#198">198</a>         }        
+<a name="199" href="#199">199</a>   
+<a name="200" href="#200">200</a>         nodeDescriptor.setPropertyName( propertyDescriptor.getName() );
+<a name="201" href="#201">201</a>         nodeDescriptor.setPropertyType( type );        
+<a name="202" href="#202">202</a>         
+<a name="203" href="#203">203</a>         <em class="comment">// XXX: associate more bean information with the descriptor?</em>
+<a name="204" href="#204">204</a>         <em class="comment">//nodeDescriptor.setDisplayName( propertyDescriptor.getDisplayName() );</em>
+<a name="205" href="#205">205</a>         <em class="comment">//nodeDescriptor.setShortDescription( propertyDescriptor.getShortDescription() );</em>
+<a name="206" href="#206">206</a>         
+<a name="207" href="#207">207</a>         <strong>if</strong> (log.isTraceEnabled()) {
+<a name="208" href="#208">208</a>             log.trace(<span class="string">"Created descriptor:"</span>);
+<a name="209" href="#209">209</a>             log.trace(nodeDescriptor);
+<a name="210" href="#210">210</a>         }
+<a name="211" href="#211">211</a>         <strong>return</strong> nodeDescriptor;
+<a name="212" href="#212">212</a>     }
+<a name="213" href="#213">213</a>     
+<a name="214" href="#214">214</a>     <em>/**<em>*</em></em>
+<a name="215" href="#215">215</a> <em>     * Configure an &lt;code>ElementDescriptor&lt;/code> from a &lt;code>PropertyDescriptor&lt;/code>.</em>
+<a name="216" href="#216">216</a> <em>     * This uses default element updater (the write method of the property).</em>
+<a name="217" href="#217">217</a> <em>     *</em>
+<a name="218" href="#218">218</a> <em>     * @param elementDescriptor configure this &lt;code>ElementDescriptor&lt;/code></em>
+<a name="219" href="#219">219</a> <em>     * @param propertyDescriptor configure from this &lt;code>PropertyDescriptor&lt;/code></em>
+<a name="220" href="#220">220</a> <em>     * @deprecated 0.6 unused</em>
+<a name="221" href="#221">221</a> <em>     */</em>
+<a name="222" href="#222">222</a>     <strong>public</strong> <strong>static</strong> <strong>void</strong> configureProperty( 
+<a name="223" href="#223">223</a>                                     <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> elementDescriptor, 
+<a name="224" href="#224">224</a>                                     PropertyDescriptor propertyDescriptor ) {
+<a name="225" href="#225">225</a>                                     
+<a name="226" href="#226">226</a>         configureProperty( elementDescriptor, propertyDescriptor, <strong>null</strong>, <strong>null</strong>);
+<a name="227" href="#227">227</a>     }
+<a name="228" href="#228">228</a>                                     
+<a name="229" href="#229">229</a>     <em>/**<em>*</em></em>
+<a name="230" href="#230">230</a> <em>     * Configure an &lt;code>ElementDescriptor&lt;/code> from a &lt;code>PropertyDescriptor&lt;/code>.</em>
+<a name="231" href="#231">231</a> <em>     * A custom update method may be set.</em>
+<a name="232" href="#232">232</a> <em>     *</em>
+<a name="233" href="#233">233</a> <em>     * @param elementDescriptor configure this &lt;code>ElementDescriptor&lt;/code></em>
+<a name="234" href="#234">234</a> <em>     * @param propertyDescriptor configure from this &lt;code>PropertyDescriptor&lt;/code></em>
+<a name="235" href="#235">235</a> <em>     * @param updateMethodName the name of the custom updater method to user. </em>
+<a name="236" href="#236">236</a> <em>     * If null, then then </em>
+<a name="237" href="#237">237</a> <em>     * @param beanClass the &lt;code>Class&lt;/code> from which the update method should be found.</em>
+<a name="238" href="#238">238</a> <em>     * This may be null only when &lt;code>updateMethodName&lt;/code> is also null.</em>
+<a name="239" href="#239">239</a> <em>     * @since 0.5</em>
+<a name="240" href="#240">240</a> <em>     * @deprecated 0.6 moved into ElementRule</em>
+<a name="241" href="#241">241</a> <em>     */</em>
+<a name="242" href="#242">242</a>     <strong>public</strong> <strong>static</strong> <strong>void</strong> configureProperty( 
+<a name="243" href="#243">243</a>                                     <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> elementDescriptor, 
+<a name="244" href="#244">244</a>                                     PropertyDescriptor propertyDescriptor,
+<a name="245" href="#245">245</a>                                     String updateMethodName,
+<a name="246" href="#246">246</a>                                     Class beanClass ) {
+<a name="247" href="#247">247</a>         
+<a name="248" href="#248">248</a>         Class type = propertyDescriptor.getPropertyType();
+<a name="249" href="#249">249</a>         Method readMethod = propertyDescriptor.getReadMethod();
+<a name="250" href="#250">250</a>         Method writeMethod = propertyDescriptor.getWriteMethod();
+<a name="251" href="#251">251</a>         
+<a name="252" href="#252">252</a>         elementDescriptor.setLocalName( propertyDescriptor.getName() );
+<a name="253" href="#253">253</a>         elementDescriptor.setPropertyType( type );        
+<a name="254" href="#254">254</a>         
+<a name="255" href="#255">255</a>         <em class="comment">// XXX: associate more bean information with the descriptor?</em>
+<a name="256" href="#256">256</a>         <em class="comment">//nodeDescriptor.setDisplayName( propertyDescriptor.getDisplayName() );</em>
+<a name="257" href="#257">257</a>         <em class="comment">//nodeDescriptor.setShortDescription( propertyDescriptor.getShortDescription() );</em>
+<a name="258" href="#258">258</a>         
+<a name="259" href="#259">259</a>         <strong>if</strong> ( readMethod == <strong>null</strong> ) {
+<a name="260" href="#260">260</a>             log.trace( <span class="string">"No read method"</span> );
+<a name="261" href="#261">261</a>             <strong>return</strong>;
+<a name="262" href="#262">262</a>         }
+<a name="263" href="#263">263</a>         
+<a name="264" href="#264">264</a>         <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="265" href="#265">265</a>             log.trace( <span class="string">"Read method="</span> + readMethod.getName() );
+<a name="266" href="#266">266</a>         }
+<a name="267" href="#267">267</a>         
+<a name="268" href="#268">268</a>         <em class="comment">// choose response from property type</em>
+<a name="269" href="#269">269</a>         
+<a name="270" href="#270">270</a>         <em class="comment">// XXX: ignore class property ??</em>
+<a name="271" href="#271">271</a>         <strong>if</strong> ( Class.<strong>class</strong>.equals( type ) &amp;&amp; <span class="string">"class"</span>.equals( propertyDescriptor.getName() ) ) {
+<a name="272" href="#272">272</a>             log.trace( <span class="string">"Ignoring class property"</span> );
+<a name="273" href="#273">273</a>             <strong>return</strong>;
+<a name="274" href="#274">274</a>         }
+<a name="275" href="#275">275</a>         <strong>if</strong> ( isPrimitiveType( type ) ) {
+<a name="276" href="#276">276</a>             elementDescriptor.setTextExpression( <strong>new</strong> MethodExpression( readMethod ) );
+<a name="277" href="#277">277</a>             
+<a name="278" href="#278">278</a>         } <strong>else</strong> <strong>if</strong> ( isLoopType( type ) ) {
+<a name="279" href="#279">279</a>             log.trace(<span class="string">"Loop type ??"</span>);
+<a name="280" href="#280">280</a>             
+<a name="281" href="#281">281</a>             <em class="comment">// don't wrap this in an extra element as its specified in the </em>
+<a name="282" href="#282">282</a>             <em class="comment">// XML descriptor so no need.            </em>
+<a name="283" href="#283">283</a>             elementDescriptor.setContextExpression(
+<a name="284" href="#284">284</a>                 <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/expression/IteratorExpression.html">IteratorExpression</a>( <strong>new</strong> MethodExpression( readMethod ) )
+<a name="285" href="#285">285</a>             );
+<a name="286" href="#286">286</a> 
+<a name="287" href="#287">287</a>             writeMethod = <strong>null</strong>;
+<a name="288" href="#288">288</a>         } <strong>else</strong> {
+<a name="289" href="#289">289</a>             log.trace( <span class="string">"Standard property"</span> );
+<a name="290" href="#290">290</a>             elementDescriptor.setContextExpression( <strong>new</strong> MethodExpression( readMethod ) );
+<a name="291" href="#291">291</a>         }
+<a name="292" href="#292">292</a>     
+<a name="293" href="#293">293</a>         <em class="comment">// see if we have a custom method update name</em>
+<a name="294" href="#294">294</a>         <strong>if</strong> (updateMethodName == <strong>null</strong>) {
+<a name="295" href="#295">295</a>             <em class="comment">// set standard write method</em>
+<a name="296" href="#296">296</a>             <strong>if</strong> ( writeMethod != <strong>null</strong> ) {
+<a name="297" href="#297">297</a>                 elementDescriptor.setUpdater( <strong>new</strong> MethodUpdater( writeMethod ) );
+<a name="298" href="#298">298</a>             }
+<a name="299" href="#299">299</a>             
+<a name="300" href="#300">300</a>         } <strong>else</strong> {
+<a name="301" href="#301">301</a>             <em class="comment">// see if we can find and set the custom method</em>
+<a name="302" href="#302">302</a>             <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="303" href="#303">303</a>                 log.trace( <span class="string">"Finding custom method: "</span> );
+<a name="304" href="#304">304</a>                 log.trace( <span class="string">"  on:"</span> + beanClass );
+<a name="305" href="#305">305</a>                 log.trace( <span class="string">"  name:"</span> + updateMethodName );
+<a name="306" href="#306">306</a>             }
+<a name="307" href="#307">307</a>             
+<a name="308" href="#308">308</a>             Method updateMethod = <strong>null</strong>;
+<a name="309" href="#309">309</a>             Method[] methods = beanClass.getMethods();
+<a name="310" href="#310">310</a>             <strong>for</strong> ( <strong>int</strong> i = 0, size = methods.length; i &lt; size; i++ ) {
+<a name="311" href="#311">311</a>                 Method method = methods[i];
+<a name="312" href="#312">312</a>                 <strong>if</strong> ( updateMethodName.equals( method.getName() ) ) {
+<a name="313" href="#313">313</a>                     <em class="comment">// we have a matching name</em>
+<a name="314" href="#314">314</a>                     <em class="comment">// check paramters are correct</em>
+<a name="315" href="#315">315</a>                     <strong>if</strong> (methods[i].getParameterTypes().length == 1) {
+<a name="316" href="#316">316</a>                         <em class="comment">// we'll use first match</em>
+<a name="317" href="#317">317</a>                         updateMethod = methods[i];
+<a name="318" href="#318">318</a>                         <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="319" href="#319">319</a>                             log.trace(<span class="string">"Matched method:"</span> + updateMethod);
+<a name="320" href="#320">320</a>                         } 
+<a name="321" href="#321">321</a>                         <em class="comment">// done since we're using the first match</em>
+<a name="322" href="#322">322</a>                         <strong>break</strong>;
+<a name="323" href="#323">323</a>                     }
+<a name="324" href="#324">324</a>                 }
+<a name="325" href="#325">325</a>             }
+<a name="326" href="#326">326</a>             
+<a name="327" href="#327">327</a>             <strong>if</strong> (updateMethod == <strong>null</strong>) {
+<a name="328" href="#328">328</a>                 <strong>if</strong> ( log.isInfoEnabled() ) {
+<a name="329" href="#329">329</a>                     
+<a name="330" href="#330">330</a>                     log.info(<span class="string">"No method with name '"</span> + updateMethodName + <span class="string">"' found for update"</span>);
+<a name="331" href="#331">331</a>                 }
+<a name="332" href="#332">332</a>             } <strong>else</strong> {
+<a name="333" href="#333">333</a>     
+<a name="334" href="#334">334</a>                 elementDescriptor.setUpdater( <strong>new</strong> MethodUpdater( updateMethod ) );
+<a name="335" href="#335">335</a>                 elementDescriptor.setSingularPropertyType( updateMethod.getParameterTypes()[0] );
+<a name="336" href="#336">336</a>                 <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="337" href="#337">337</a>                     log.trace( <span class="string">"Set custom updater on "</span> + elementDescriptor);
+<a name="338" href="#338">338</a>                 }
+<a name="339" href="#339">339</a>             }
+<a name="340" href="#340">340</a>         }
+<a name="341" href="#341">341</a>     }
+<a name="342" href="#342">342</a>     
+<a name="343" href="#343">343</a>     <em>/**<em>*</em></em>
+<a name="344" href="#344">344</a> <em>     * Configure an &lt;code>AttributeDescriptor&lt;/code> from a &lt;code>PropertyDescriptor&lt;/code></em>
+<a name="345" href="#345">345</a> <em>     *</em>
+<a name="346" href="#346">346</a> <em>     * @param attributeDescriptor configure this &lt;code>AttributeDescriptor&lt;/code></em>
+<a name="347" href="#347">347</a> <em>     * @param propertyDescriptor configure from this &lt;code>PropertyDescriptor&lt;/code></em>
+<a name="348" href="#348">348</a> <em>     * @deprecated 0.6 moved into AttributeRule</em>
+<a name="349" href="#349">349</a> <em>     */</em>
+<a name="350" href="#350">350</a>     <strong>public</strong> <strong>static</strong> <strong>void</strong> configureProperty( 
+<a name="351" href="#351">351</a>                                     <a href="../../../../../org/apache/commons/betwixt/AttributeDescriptor.html">AttributeDescriptor</a> attributeDescriptor, 
+<a name="352" href="#352">352</a>                                     PropertyDescriptor propertyDescriptor ) {
+<a name="353" href="#353">353</a>         Class type = propertyDescriptor.getPropertyType();
+<a name="354" href="#354">354</a>         Method readMethod = propertyDescriptor.getReadMethod();
+<a name="355" href="#355">355</a>         Method writeMethod = propertyDescriptor.getWriteMethod();
+<a name="356" href="#356">356</a>         
+<a name="357" href="#357">357</a>         <strong>if</strong> ( readMethod == <strong>null</strong> ) {
+<a name="358" href="#358">358</a>             log.trace( <span class="string">"No read method"</span> );
+<a name="359" href="#359">359</a>             <strong>return</strong>;
+<a name="360" href="#360">360</a>         }
+<a name="361" href="#361">361</a>         
+<a name="362" href="#362">362</a>         <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="363" href="#363">363</a>             log.trace( <span class="string">"Read method="</span> + readMethod );
+<a name="364" href="#364">364</a>         }
+<a name="365" href="#365">365</a>         
+<a name="366" href="#366">366</a>         <em class="comment">// choose response from property type</em>
+<a name="367" href="#367">367</a>         
+<a name="368" href="#368">368</a>         <em class="comment">// XXX: ignore class property ??</em>
+<a name="369" href="#369">369</a>         <strong>if</strong> ( Class.<strong>class</strong>.equals( type ) &amp;&amp; <span class="string">"class"</span>.equals( propertyDescriptor.getName() ) ) {
+<a name="370" href="#370">370</a>             log.trace( <span class="string">"Ignoring class property"</span> );
+<a name="371" href="#371">371</a>             <strong>return</strong>;
+<a name="372" href="#372">372</a>         }
+<a name="373" href="#373">373</a>         <strong>if</strong> ( isLoopType( type ) ) {
+<a name="374" href="#374">374</a>             log.warn( <span class="string">"Using loop type for an attribute. Type = "</span> 
+<a name="375" href="#375">375</a>                     + type.getName() + <span class="string">" attribute: "</span> + attributeDescriptor.getQualifiedName() );
+<a name="376" href="#376">376</a>         }
+<a name="377" href="#377">377</a> 
+<a name="378" href="#378">378</a>         log.trace( <span class="string">"Standard property"</span> );
+<a name="379" href="#379">379</a>         attributeDescriptor.setTextExpression( <strong>new</strong> MethodExpression( readMethod ) );
+<a name="380" href="#380">380</a>         
+<a name="381" href="#381">381</a>         <strong>if</strong> ( writeMethod != <strong>null</strong> ) {
+<a name="382" href="#382">382</a>             attributeDescriptor.setUpdater( <strong>new</strong> MethodUpdater( writeMethod ) );
+<a name="383" href="#383">383</a>         }
+<a name="384" href="#384">384</a>         
+<a name="385" href="#385">385</a>         attributeDescriptor.setLocalName( propertyDescriptor.getName() );
+<a name="386" href="#386">386</a>         attributeDescriptor.setPropertyType( type );        
+<a name="387" href="#387">387</a>         
+<a name="388" href="#388">388</a>         <em class="comment">// XXX: associate more bean information with the descriptor?</em>
+<a name="389" href="#389">389</a>         <em class="comment">//nodeDescriptor.setDisplayName( propertyDescriptor.getDisplayName() );</em>
+<a name="390" href="#390">390</a>         <em class="comment">//nodeDescriptor.setShortDescription( propertyDescriptor.getShortDescription() );</em>
+<a name="391" href="#391">391</a>     }
+<a name="392" href="#392">392</a>     
+<a name="393" href="#393">393</a> 
+<a name="394" href="#394">394</a>     <em>/**<em>* </em></em>
+<a name="395" href="#395">395</a> <em>     * Add any addPropety(PropertyType) methods as Updaters </em>
+<a name="396" href="#396">396</a> <em>     * which are often used for 1-N relationships in beans.</em>
+<a name="397" href="#397">397</a> <em>     * &lt;br></em>
+<a name="398" href="#398">398</a> <em>     * The tricky part here is finding which ElementDescriptor corresponds</em>
+<a name="399" href="#399">399</a> <em>     * to the method. e.g. a property 'items' might have an Element descriptor</em>
+<a name="400" href="#400">400</a> <em>     * which the method addItem() should match to. </em>
+<a name="401" href="#401">401</a> <em>     * &lt;br></em>
+<a name="402" href="#402">402</a> <em>     * So the algorithm we'll use </em>
+<a name="403" href="#403">403</a> <em>     * by default is to take the decapitalized name of the property being added</em>
+<a name="404" href="#404">404</a> <em>     * and find the first ElementDescriptor that matches the property starting with</em>
+<a name="405" href="#405">405</a> <em>     * the string. This should work for most use cases. </em>
+<a name="406" href="#406">406</a> <em>     * e.g. addChild() would match the children property.</em>
+<a name="407" href="#407">407</a> <em>     *</em>
+<a name="408" href="#408">408</a> <em>     * @param introspector use this &lt;code>XMLIntrospector&lt;/code> for introspection</em>
+<a name="409" href="#409">409</a> <em>     * @param rootDescriptor add defaults to this descriptor</em>
+<a name="410" href="#410">410</a> <em>     * @param beanClass the &lt;code>Class&lt;/code> to which descriptor corresponds</em>
+<a name="411" href="#411">411</a> <em>     * @deprecated 0.6 use the method in XMLIntrospector instead</em>
+<a name="412" href="#412">412</a> <em>     */</em>
+<a name="413" href="#413">413</a>     <strong>public</strong> <strong>static</strong> <strong>void</strong> defaultAddMethods( 
+<a name="414" href="#414">414</a>                                             <a href="../../../../../org/apache/commons/betwixt/XMLIntrospector.html">XMLIntrospector</a> introspector, 
+<a name="415" href="#415">415</a>                                             <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> rootDescriptor, 
+<a name="416" href="#416">416</a>                                             Class beanClass ) {
+<a name="417" href="#417">417</a>         <em class="comment">// lets iterate over all methods looking for one of the form</em>
+<a name="418" href="#418">418</a>         <em class="comment">// add*(PropertyType)</em>
+<a name="419" href="#419">419</a>         <strong>if</strong> ( beanClass != <strong>null</strong> ) {
+<a name="420" href="#420">420</a>             Method[] methods = beanClass.getMethods();
+<a name="421" href="#421">421</a>             <strong>for</strong> ( <strong>int</strong> i = 0, size = methods.length; i &lt; size; i++ ) {
+<a name="422" href="#422">422</a>                 Method method = methods[i];
+<a name="423" href="#423">423</a>                 String name = method.getName();
+<a name="424" href="#424">424</a>                 <strong>if</strong> ( name.startsWith( <span class="string">"add"</span> ) ) {
+<a name="425" href="#425">425</a>                     <em class="comment">// XXX: should we filter out non-void returning methods?</em>
+<a name="426" href="#426">426</a>                     <em class="comment">// some beans will return something as a helper</em>
+<a name="427" href="#427">427</a>                     Class[] types = method.getParameterTypes();
+<a name="428" href="#428">428</a>                     <strong>if</strong> ( types != <strong>null</strong>) {
+<a name="429" href="#429">429</a>                         <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="430" href="#430">430</a>                             log.trace(<span class="string">"Searching for match for "</span> + method);
+<a name="431" href="#431">431</a>                         }
+<a name="432" href="#432">432</a>                         
+<a name="433" href="#433">433</a>                         <strong>if</strong> ( ( types.length == 1 ) || types.length == 2 ) {
+<a name="434" href="#434">434</a>                             String propertyName = Introspector.decapitalize( name.substring(3) );
+<a name="435" href="#435">435</a>                             <strong>if</strong> (propertyName.length() == 0)
+<a name="436" href="#436">436</a>                                 <strong>continue</strong>;
+<a name="437" href="#437">437</a>                             <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="438" href="#438">438</a>                                 log.trace( name + <span class="string">"->"</span> + propertyName );
+<a name="439" href="#439">439</a>                             }
+<a name="440" href="#440">440</a>     
+<a name="441" href="#441">441</a>                             <em class="comment">// now lets try find the ElementDescriptor which displays</em>
+<a name="442" href="#442">442</a>                             <em class="comment">// a property which starts with propertyName</em>
+<a name="443" href="#443">443</a>                             <em class="comment">// and if so, we'll set a new Updater on it if there</em>
+<a name="444" href="#444">444</a>                             <em class="comment">// is not one already</em>
+<a name="445" href="#445">445</a>                             <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> descriptor = 
+<a name="446" href="#446">446</a>                                 findGetCollectionDescriptor( 
+<a name="447" href="#447">447</a>                                                             introspector, 
+<a name="448" href="#448">448</a>                                                             rootDescriptor, 
+<a name="449" href="#449">449</a>                                                             propertyName );
+<a name="450" href="#450">450</a>     
+<a name="451" href="#451">451</a>                             <strong>if</strong> ( log.isDebugEnabled() ) {
+<a name="452" href="#452">452</a>                                 log.debug( <span class="string">"!! "</span> + propertyName + <span class="string">" -> "</span> + descriptor );
+<a name="453" href="#453">453</a>                                 log.debug( <span class="string">"!! "</span> + name + <span class="string">" -> "</span> 
+<a name="454" href="#454">454</a>                                 + (descriptor!=<strong>null</strong>?descriptor.getPropertyName():<span class="string">""</span>) );
+<a name="455" href="#455">455</a>                             }
+<a name="456" href="#456">456</a>                             <strong>if</strong> ( descriptor != <strong>null</strong> ) {
+<a name="457" href="#457">457</a>                                 <strong>boolean</strong> isMapDescriptor 
+<a name="458" href="#458">458</a>                                     = Map.<strong>class</strong>.isAssignableFrom( descriptor.getPropertyType() );
+<a name="459" href="#459">459</a>                                 <strong>if</strong> ( !isMapDescriptor &amp;&amp; types.length == 1 ) {
+<a name="460" href="#460">460</a>                                     <em class="comment">// this may match a standard collection or iteration</em>
+<a name="461" href="#461">461</a>                                     log.trace(<span class="string">"Matching collection or iteration"</span>);
+<a name="462" href="#462">462</a>                                     
+<a name="463" href="#463">463</a>                                     descriptor.setUpdater( <strong>new</strong> MethodUpdater( method ) );
+<a name="464" href="#464">464</a>                                     descriptor.setSingularPropertyType( types[0] );
+<a name="465" href="#465">465</a>                                     
+<a name="466" href="#466">466</a>                                     <strong>if</strong> ( log.isDebugEnabled() ) {
+<a name="467" href="#467">467</a>                                         log.debug( <span class="string">"!! "</span> + method);
+<a name="468" href="#468">468</a>                                         log.debug( <span class="string">"!! "</span> + types[0]);
+<a name="469" href="#469">469</a>                                     }
+<a name="470" href="#470">470</a>                                     
+<a name="471" href="#471">471</a>                                     <em class="comment">// is there a child element with no localName</em>
+<a name="472" href="#472">472</a>                                     <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>[] children 
+<a name="473" href="#473">473</a>                                         = descriptor.getElementDescriptors();
+<a name="474" href="#474">474</a>                                     <strong>if</strong> ( children != <strong>null</strong> &amp;&amp; children.length > 0 ) {
+<a name="475" href="#475">475</a>                                         <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> child = children[0];
+<a name="476" href="#476">476</a>                                         String localName = child.getLocalName();
+<a name="477" href="#477">477</a>                                         <strong>if</strong> ( localName == <strong>null</strong> || localName.length() == 0 ) {
+<a name="478" href="#478">478</a>                                             child.setLocalName( 
+<a name="479" href="#479">479</a>                                                 introspector.getElementNameMapper()
+<a name="480" href="#480">480</a>                                                     .mapTypeToElementName( propertyName ) );
+<a name="481" href="#481">481</a>                                         }
+<a name="482" href="#482">482</a>                                     }
+<a name="483" href="#483">483</a> 
+<a name="484" href="#484">484</a>                                 } <strong>else</strong> <strong>if</strong> ( isMapDescriptor &amp;&amp; types.length == 2 ) {
+<a name="485" href="#485">485</a>                                     <em class="comment">// this may match a map</em>
+<a name="486" href="#486">486</a>                                     log.trace(<span class="string">"Matching map"</span>);
+<a name="487" href="#487">487</a>                                     <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>[] children 
+<a name="488" href="#488">488</a>                                         = descriptor.getElementDescriptors();
+<a name="489" href="#489">489</a>                                     <em class="comment">// see if the descriptor's been set up properly</em>
+<a name="490" href="#490">490</a>                                     <strong>if</strong> ( children.length == 0 ) {
+<a name="491" href="#491">491</a>                                         
+<a name="492" href="#492">492</a>                                         log.info(
+<a name="493" href="#493">493</a>                                             <span class="string">"'entry' descriptor is missing for map. "</span>
+<a name="494" href="#494">494</a>                                             + <span class="string">"Updaters cannot be set"</span>);
+<a name="495" href="#495">495</a>                                         
+<a name="496" href="#496">496</a>                                     } <strong>else</strong> {
+<a name="497" href="#497">497</a>                                         <em class="comment">// loop through grandchildren </em>
+<a name="498" href="#498">498</a>                                         <em class="comment">// adding updaters for key and value</em>
+<a name="499" href="#499">499</a>                                         <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>[] grandchildren
+<a name="500" href="#500">500</a>                                             = children[0].getElementDescriptors();
+<a name="501" href="#501">501</a>                                         <a href="../../../../../org/apache/commons/betwixt/expression/MapEntryAdder.html">MapEntryAdder</a> adder = <strong>new</strong> <a href="../../../../../org/apache/commons/betwixt/expression/MapEntryAdder.html">MapEntryAdder</a>(method);
+<a name="502" href="#502">502</a>                                         <strong>for</strong> ( 
+<a name="503" href="#503">503</a>                                             <strong>int</strong> n=0, 
+<a name="504" href="#504">504</a>                                                 noOfGrandChildren = grandchildren.length;
+<a name="505" href="#505">505</a>                                             n &lt; noOfGrandChildren;
+<a name="506" href="#506">506</a>                                             n++ ) {
+<a name="507" href="#507">507</a>                                             <strong>if</strong> ( <span class="string">"key"</span>.equals( 
+<a name="508" href="#508">508</a>                                                     grandchildren[n].getLocalName() ) ) {
+<a name="509" href="#509">509</a>                                             
+<a name="510" href="#510">510</a>                                                 grandchildren[n].setUpdater( 
+<a name="511" href="#511">511</a>                                                                 adder.getKeyUpdater() );
+<a name="512" href="#512">512</a>                                                 grandchildren[n].setSingularPropertyType( 
+<a name="513" href="#513">513</a>                                                                 types[0] );
+<a name="514" href="#514">514</a>                                                 <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="515" href="#515">515</a>                                                     log.trace(
+<a name="516" href="#516">516</a>                                                         <span class="string">"Key descriptor: "</span> + grandchildren[n]);
+<a name="517" href="#517">517</a>                                                 }                                               
+<a name="518" href="#518">518</a>                                                 
+<a name="519" href="#519">519</a>                                             } <strong>else</strong> <strong>if</strong> ( 
+<a name="520" href="#520">520</a>                                                 <span class="string">"value"</span>.equals( 
+<a name="521" href="#521">521</a>                                                     grandchildren[n].getLocalName() ) ) {
+<a name="522" href="#522">522</a> 
+<a name="523" href="#523">523</a>                                                 grandchildren[n].setUpdater( 
+<a name="524" href="#524">524</a>                                                                     adder.getValueUpdater() );
+<a name="525" href="#525">525</a>                                                 grandchildren[n].setSingularPropertyType( 
+<a name="526" href="#526">526</a>                                                                     types[1] );
+<a name="527" href="#527">527</a>                                                 <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="528" href="#528">528</a>                                                     log.trace(
+<a name="529" href="#529">529</a>                                                         <span class="string">"Value descriptor: "</span> + grandchildren[n]);
+<a name="530" href="#530">530</a>                                                 }
+<a name="531" href="#531">531</a>                                             }
+<a name="532" href="#532">532</a>                                         }
+<a name="533" href="#533">533</a>                                     }
+<a name="534" href="#534">534</a>                                 }
+<a name="535" href="#535">535</a>                             } <strong>else</strong> {
+<a name="536" href="#536">536</a>                                 <strong>if</strong> ( log.isDebugEnabled() ) {
+<a name="537" href="#537">537</a>                                     log.debug( 
+<a name="538" href="#538">538</a>                                         <span class="string">"Could not find an ElementDescriptor with property name: "</span> 
+<a name="539" href="#539">539</a>                                         + propertyName + <span class="string">" to attach the add method: "</span> + method 
+<a name="540" href="#540">540</a>                                     );
+<a name="541" href="#541">541</a>                                 }
+<a name="542" href="#542">542</a>                             }
+<a name="543" href="#543">543</a>                         }
+<a name="544" href="#544">544</a>                     } 
+<a name="545" href="#545">545</a>                 }
+<a name="546" href="#546">546</a>             }
+<a name="547" href="#547">547</a>         }
+<a name="548" href="#548">548</a>     }
+<a name="549" href="#549">549</a>     
+<a name="550" href="#550">550</a>     <em>/**<em>* </em></em>
+<a name="551" href="#551">551</a> <em>     * Is this a loop type class?</em>
+<a name="552" href="#552">552</a> <em>     *</em>
+<a name="553" href="#553">553</a> <em>     * @param type is this &lt;code>Class&lt;/code> a loop type?</em>
+<a name="554" href="#554">554</a> <em>     * @return true if the type is a loop type, or if type is null </em>
+<a name="555" href="#555">555</a> <em>     * @deprecated 0.7 replaced by {@link org.apache.commons.betwixt.IntrospectionConfiguration#isLoopType(Class)}</em>
+<a name="556" href="#556">556</a> <em>     */</em>
+<a name="557" href="#557">557</a>     <strong>public</strong> <strong>static</strong> <strong>boolean</strong> isLoopType(Class type) {
+<a name="558" href="#558">558</a>         <em class="comment">// check for NPEs</em>
+<a name="559" href="#559">559</a>         <strong>if</strong> (type == <strong>null</strong>) {
+<a name="560" href="#560">560</a>             log.trace(<span class="string">"isLoopType: type is null"</span>);
+<a name="561" href="#561">561</a>             <strong>return</strong> false;
+<a name="562" href="#562">562</a>         }
+<a name="563" href="#563">563</a>         <strong>return</strong> type.isArray() 
+<a name="564" href="#564">564</a>             || Map.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="565" href="#565">565</a>             || Collection.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="566" href="#566">566</a>             || Enumeration.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="567" href="#567">567</a>             || Iterator.<strong>class</strong>.isAssignableFrom( type );
+<a name="568" href="#568">568</a>     }
+<a name="569" href="#569">569</a>     
+<a name="570" href="#570">570</a>     
+<a name="571" href="#571">571</a>     <em>/**<em>*</em></em>
+<a name="572" href="#572">572</a> <em>     * Is this a primitive type? </em>
+<a name="573" href="#573">573</a> <em>     *      </em>
+<a name="574" href="#574">574</a> <em>     * TODO: this method will probably be removed when primitive types</em>
+<a name="575" href="#575">575</a> <em>     * are subsumed into the simple type concept.</em>
+<a name="576" href="#576">576</a> <em>     * This needs moving into XMLIntrospector so that the list of simple</em>
+<a name="577" href="#577">577</a> <em>     * type can be varied.</em>
+<a name="578" href="#578">578</a> <em>     * @param type is this &lt;code>Class&lt;code> a primitive type?</em>
+<a name="579" href="#579">579</a> <em>     * @return true for primitive types </em>
+<a name="580" href="#580">580</a> <em>     * @deprecated 0.6 replaced by {@link org.apache.commons.betwixt.strategy.TypeBindingStrategy}</em>
+<a name="581" href="#581">581</a> <em>     */</em>
+<a name="582" href="#582">582</a>     <strong>public</strong> <strong>static</strong> <strong>boolean</strong> isPrimitiveType(Class type) {
+<a name="583" href="#583">583</a>         <strong>if</strong> ( type == <strong>null</strong> ) {
+<a name="584" href="#584">584</a>             <strong>return</strong> false;
+<a name="585" href="#585">585</a>             
+<a name="586" href="#586">586</a>         } <strong>else</strong> <strong>if</strong> ( type.isPrimitive() ) {
+<a name="587" href="#587">587</a>             <strong>return</strong> <strong>true</strong>;
+<a name="588" href="#588">588</a>             
+<a name="589" href="#589">589</a>         } <strong>else</strong> <strong>if</strong> ( type.equals( Object.<strong>class</strong> ) ) {
+<a name="590" href="#590">590</a>             <strong>return</strong> false;
+<a name="591" href="#591">591</a>         }
+<a name="592" href="#592">592</a>         <strong>return</strong> type.getName().startsWith( <span class="string">"java.lang."</span> )
+<a name="593" href="#593">593</a>             || Number.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="594" href="#594">594</a>             || String.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="595" href="#595">595</a>             || Date.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="596" href="#596">596</a>             || java.sql.Date.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="597" href="#597">597</a>             || java.sql.Time.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="598" href="#598">598</a>             || java.sql.Timestamp.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="599" href="#599">599</a>             || java.math.BigDecimal.<strong>class</strong>.isAssignableFrom( type ) 
+<a name="600" href="#600">600</a>             || java.math.BigInteger.<strong>class</strong>.isAssignableFrom( type );
+<a name="601" href="#601">601</a>     }
+<a name="602" href="#602">602</a>     
+<a name="603" href="#603">603</a>     <em class="comment">// Implementation methods</em>
+<a name="604" href="#604">604</a>     <em class="comment">//-------------------------------------------------------------------------    </em>
+<a name="605" href="#605">605</a>     
+<a name="606" href="#606">606</a>     <em>/**<em>* </em></em>
+<a name="607" href="#607">607</a> <em>     * Attempts to find the element descriptor for the getter property that </em>
+<a name="608" href="#608">608</a> <em>     * typically matches a collection or array. The property name is used</em>
+<a name="609" href="#609">609</a> <em>     * to match. e.g. if an addChild() method is detected the </em>
+<a name="610" href="#610">610</a> <em>     * descriptor for the 'children' getter property should be returned.</em>
+<a name="611" href="#611">611</a> <em>     *</em>
+<a name="612" href="#612">612</a> <em>     * @param introspector use this &lt;code>XMLIntrospector&lt;/code></em>
+<a name="613" href="#613">613</a> <em>     * @param rootDescriptor the &lt;code>ElementDescriptor&lt;/code> whose child element will be</em>
+<a name="614" href="#614">614</a> <em>     * searched for a match</em>
+<a name="615" href="#615">615</a> <em>     * @param propertyName the name of the 'adder' method to match</em>
+<a name="616" href="#616">616</a> <em>     * @return &lt;code>ElementDescriptor&lt;/code> for the matching getter </em>
+<a name="617" href="#617">617</a> <em>     * @deprecated 0.6 moved into XMLIntrospector</em>
+<a name="618" href="#618">618</a> <em>     */</em>
+<a name="619" href="#619">619</a>     <strong>protected</strong> <strong>static</strong> <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> findGetCollectionDescriptor( 
+<a name="620" href="#620">620</a>                                                 <a href="../../../../../org/apache/commons/betwixt/XMLIntrospector.html">XMLIntrospector</a> introspector, 
+<a name="621" href="#621">621</a>                                                 <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> rootDescriptor, 
+<a name="622" href="#622">622</a>                                                 String propertyName ) {
+<a name="623" href="#623">623</a>         <em class="comment">// create the Map of propertyName -> descriptor that the PluralStemmer will choose</em>
+<a name="624" href="#624">624</a>         Map map = <strong>new</strong> HashMap();
+<a name="625" href="#625">625</a>         <em class="comment">//String propertyName = rootDescriptor.getPropertyName();</em>
+<a name="626" href="#626">626</a>         <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="627" href="#627">627</a>             log.trace( <span class="string">"findPluralDescriptor( "</span> + propertyName 
+<a name="628" href="#628">628</a>                 + <span class="string">" ):root property name="</span> + rootDescriptor.getPropertyName() );
+<a name="629" href="#629">629</a>         }
+<a name="630" href="#630">630</a>         
+<a name="631" href="#631">631</a>         <strong>if</strong> (rootDescriptor.getPropertyName() != <strong>null</strong>) {
+<a name="632" href="#632">632</a>             map.put(propertyName, rootDescriptor);
+<a name="633" href="#633">633</a>         }
+<a name="634" href="#634">634</a>         makeElementDescriptorMap( rootDescriptor, map );
+<a name="635" href="#635">635</a>         
+<a name="636" href="#636">636</a>         <a href="../../../../../org/apache/commons/betwixt/strategy/PluralStemmer.html">PluralStemmer</a> stemmer = introspector.getPluralStemmer();
+<a name="637" href="#637">637</a>         <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> elementDescriptor = stemmer.findPluralDescriptor( propertyName, map );
+<a name="638" href="#638">638</a>         
+<a name="639" href="#639">639</a>         <strong>if</strong> ( log.isTraceEnabled() ) {
+<a name="640" href="#640">640</a>             log.trace( 
+<a name="641" href="#641">641</a>                 <span class="string">"findPluralDescriptor( "</span> + propertyName 
+<a name="642" href="#642">642</a>                     + <span class="string">" ):ElementDescriptor="</span> + elementDescriptor );
+<a name="643" href="#643">643</a>         }
+<a name="644" href="#644">644</a>         
+<a name="645" href="#645">645</a>         <strong>return</strong> elementDescriptor;
+<a name="646" href="#646">646</a>     }
+<a name="647" href="#647">647</a> 
+<a name="648" href="#648">648</a>     <em>/**<em>*</em></em>
+<a name="649" href="#649">649</a> <em>     * Creates a map where the keys are the property names and the values are the ElementDescriptors</em>
+<a name="650" href="#650">650</a> <em>     * </em>
+<a name="651" href="#651">651</a> <em>     * @param rootDescriptor the values of the maps are the children of this </em>
+<a name="652" href="#652">652</a> <em>     * &lt;code>ElementDescriptor&lt;/code> index by their property names</em>
+<a name="653" href="#653">653</a> <em>     * @param map the map to which the elements will be added</em>
+<a name="654" href="#654">654</a> <em>     * @deprecated 0.6 moved into XMLIntrospector</em>
+<a name="655" href="#655">655</a> <em>     */</em>
+<a name="656" href="#656">656</a>     <strong>protected</strong> <strong>static</strong> <strong>void</strong> makeElementDescriptorMap( ElementDescriptor rootDescriptor, Map map ) {
+<a name="657" href="#657">657</a>         <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>[] children = rootDescriptor.getElementDescriptors();
+<a name="658" href="#658">658</a>         <strong>if</strong> ( children != <strong>null</strong> ) {
+<a name="659" href="#659">659</a>             <strong>for</strong> ( <strong>int</strong> i = 0, size = children.length; i &lt; size; i++ ) {
+<a name="660" href="#660">660</a>                 <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> child = children[i];                
+<a name="661" href="#661">661</a>                 String propertyName = child.getPropertyName();                
+<a name="662" href="#662">662</a>                 <strong>if</strong> ( propertyName != <strong>null</strong> ) {
+<a name="663" href="#663">663</a>                     map.put( propertyName, child );
+<a name="664" href="#664">664</a>                 }
+<a name="665" href="#665">665</a>                 makeElementDescriptorMap( child, map );
+<a name="666" href="#666">666</a>             }
+<a name="667" href="#667">667</a>         }
+<a name="668" href="#668">668</a>     }
+<a name="669" href="#669">669</a> 
+<a name="670" href="#670">670</a>     <em>/**<em>*</em></em>
+<a name="671" href="#671">671</a> <em>     * Traverse the tree of element descriptors and find the oldValue and swap it with the newValue.</em>
+<a name="672" href="#672">672</a> <em>     * This would be much easier to do if ElementDescriptor supported a parent relationship.</em>
+<a name="673" href="#673">673</a> <em>     *</em>
+<a name="674" href="#674">674</a> <em>     * @param rootDescriptor traverse child graph for this &lt;code>ElementDescriptor&lt;/code></em>
+<a name="675" href="#675">675</a> <em>     * @param oldValue replace this &lt;code>ElementDescriptor&lt;/code></em>
+<a name="676" href="#676">676</a> <em>     * @param newValue replace with this &lt;code>ElementDescriptor&lt;/code></em>
+<a name="677" href="#677">677</a> <em>     * @deprecated 0.6 now unused</em>
+<a name="678" href="#678">678</a> <em>     */</em>     
+<a name="679" href="#679">679</a>     <strong>protected</strong> <strong>static</strong> <strong>void</strong> swapDescriptor( 
+<a name="680" href="#680">680</a>                                 <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> rootDescriptor, 
+<a name="681" href="#681">681</a>                                 <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> oldValue, 
+<a name="682" href="#682">682</a>                                 <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> newValue ) {
+<a name="683" href="#683">683</a>         <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a>[] children = rootDescriptor.getElementDescriptors();
+<a name="684" href="#684">684</a>         <strong>if</strong> ( children != <strong>null</strong> ) {
+<a name="685" href="#685">685</a>             <strong>for</strong> ( <strong>int</strong> i = 0, size = children.length; i &lt; size; i++ ) {
+<a name="686" href="#686">686</a>                 <a href="../../../../../org/apache/commons/betwixt/ElementDescriptor.html">ElementDescriptor</a> child = children[i];
+<a name="687" href="#687">687</a>                 <strong>if</strong> ( child == oldValue ) {
+<a name="688" href="#688">688</a>                     children[i] = newValue;
+<a name="689" href="#689">689</a>                     <strong>break</strong>;
+<a name="690" href="#690">690</a>                 }
+<a name="691" href="#691">691</a>                 swapDescriptor( child, oldValue, newValue );
+<a name="692" href="#692">692</a>             }
+<a name="693" href="#693">693</a>         }
+<a name="694" href="#694">694</a>     }
+<a name="695" href="#695">695</a> }
+</pre>
+<hr/><div id="footer">This page was automatically generated by <a href="http://maven.apache.org/">Maven</a></div></body>
+</html>
+
