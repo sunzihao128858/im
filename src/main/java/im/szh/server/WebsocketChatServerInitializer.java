@@ -25,7 +25,7 @@ public class WebsocketChatServerInitializer extends
 		pipeline.addLast(new HttpObjectAggregator(64*1024));
 		pipeline.addLast(new ChunkedWriteHandler());
 		//pipeline.addLast(new HttpRequestHandler("/ws"));
-		pipeline.addLast(new WebSocketServerProtocolHandler("/"));
+		pipeline.addLast(new WebSocketServerProtocolHandler("/socket"));
 		pipeline.addLast(new TextWebSocketFrameHandler());
 
     }

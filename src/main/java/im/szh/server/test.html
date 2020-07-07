@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>test</title>
+</head>
+<body>
+<script type="text/javascript">
+    function send(value) {
+        const object1 = {};
+        object1.property1 = 42;
+
+        console.log(object1.hasOwnProperty('property1'));
+        // expected output: true
+
+        console.log(object1.hasOwnProperty('toString'));
+        // expected output: false
+
+        console.log(object1.hasOwnProperty('hasOwnProperty'));
+        //var str = 89;
+        var str = {"name":"菜鸟教程", "site":"http://www.runoob.com"};
+        console.log(str.hasOwnProperty('name1'));
+        $tmp_str    =   JSON.stringify(str);
+        console.log($tmp_str);
+    }
+    function SocketOpen() {
+        var o = {};
+        o.constructor === Object; // true
+        console.log(o.constructor);
+         var o = new Object;
+        console.log(o.constructor);
+         o.constructor === Object; // true
+        console.log(o.constructor);
+         var a = [];
+        console.log(a.constructor);
+        // a.constructor === Array; // true
+        //
+        // var a = new Array;
+        // a.constructor === Array // true
+        //
+         var n = new Number(3);
+        console.log(n.constructor);
+        // n.constructor === Number; // true
+    }
+</script>
+<form onsubmit="return false;">
+    <h3>WebSocket 聊天室：</h3>
+    <textarea id="responseText" style="width: 500px; height: 300px;"></textarea>
+    <br>
+    <input type="text" name="message"  style="width: 300px" value="孙子浩">
+    <input type="button" value="发送消息" onclick="send(this.form.message.value)">
+    <input type="button" value="开启连接" onclick="SocketOpen()">
+    <input type="button" value="关闭连接" onclick="SocketClose()">
+    <input type="button" onclick="javascript:document.getElementById('responseText').value=''" value="清空聊天记录">
+</form>
+<br>
+<br>
+
+</body>
+</html>
